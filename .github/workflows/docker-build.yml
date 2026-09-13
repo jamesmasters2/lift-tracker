@@ -64,6 +64,10 @@ jobs:
           service: 'lift-tracker'
           region: 'us-east1'
           image: 'ghcr.io/jamesmasters2/lift-tracker:${{ github.sha }}'
+          # New Cloud Run services default to requiring IAM auth; app-level
+          # Google Sign-In (server.js) is the real access gate, so the
+          # service itself needs to allow unauthenticated invocations.
+          flags: '--allow-unauthenticated'
           env_vars: |
             GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}
             AUTHORIZED_EMAILS=${{ secrets.AUTHORIZED_EMAILS }}
