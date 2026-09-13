@@ -1,0 +1,17 @@
+services:
+  lift-tracker:
+    build: .
+    container_name: lift-tracker
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./data:/app/data
+    env_file:
+      - .env
+    environment:
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - AUTHORIZED_EMAILS=${AUTHORIZED_EMAILS}
+      - DISPLAY_NAMES=${DISPLAY_NAMES}
+      - SESSION_SECRET=${SESSION_SECRET}
+      - COOKIE_SECURE=${COOKIE_SECURE:-true}
+    restart: unless-stopped

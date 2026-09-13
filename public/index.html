@@ -1,0 +1,959 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lift Tracker</title>
+<style>
+  :root {
+    --bg: #15171A;
+    --surface: #1D2024;
+    --accent: #3B82F6;
+    --muted: #9198A5;
+    --highlight: #22C55E;
+    --danger: #EF4444;
+    --text: #E7E9EC;
+    --border: #2A2D33;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: linear-gradient(180deg, #0E0F11 0%, var(--bg) 100%);
+    color: var(--text);
+    font-family: -apple-system, 'Segoe UI', sans-serif;
+    padding: 20px 14px 60px;
+    max-width: 640px;
+    margin-inline: auto;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  header {
+    border-bottom: 2px solid rgba(59,130,246,0.12);
+    padding-bottom: 10px;
+    margin-bottom: 16px;
+  }
+  h1 {
+    font-size: 1.5rem;
+    margin: 0;
+    letter-spacing: 0.2px;
+    color: var(--accent);
+    font-weight: 600;
+  }
+  .view-toggle {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 18px;
+  }
+  .view-toggle button {
+    flex: 1;
+    padding: 8px;
+    border: 1px solid rgba(255,255,255,0.03);
+    background: transparent;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    color: var(--text);
+  }
+  .view-toggle button.active {
+    background: linear-gradient(180deg, rgba(59,130,246,0.08), rgba(34,197,94,0.04));
+    color: var(--accent);
+    border-color: rgba(59,130,246,0.14);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.35) inset;
+  }
+  .loading {
+    text-align: center;
+    color: var(--muted);
+    padding: 30px 0;
+    font-size: 0.9rem;
+  }
+  .start-workout-wrap {
+    padding: 40px 0;
+    text-align: center;
+  }
+  .start-workout-btn {
+    background: linear-gradient(90deg, var(--highlight), var(--accent));
+    color: #10131A;
+    border: none;
+    padding: 14px 28px;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .workout-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+  }
+  .workout-started {
+    font-size: 0.8rem;
+    color: var(--muted);
+  }
+  .discard-btn {
+    background: none;
+    border: none;
+    color: var(--danger);
+    font-size: 0.78rem;
+    cursor: pointer;
+    padding: 4px;
+  }
+  .workout-stats {
+    font-size: 0.76rem;
+    color: var(--muted);
+    margin-bottom: 14px;
+  }
+  .workout-exercise-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+  .workout-empty {
+    color: var(--muted);
+    font-size: 0.85rem;
+    text-align: center;
+    padding: 24px 0;
+  }
+  .workout-exercise {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+    box-shadow: 0 6px 14px rgba(10,11,13,0.45);
+  }
+  .we-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+  .we-name {
+    font-weight: 600;
+    font-size: 1rem;
+  }
+  .we-remove {
+    background: none;
+    border: none;
+    color: var(--danger);
+    font-size: 0.74rem;
+    cursor: pointer;
+    padding: 2px;
+  }
+  .we-sets {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .we-set-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .we-set-label {
+    width: 40px;
+    font-size: 0.72rem;
+    color: var(--muted);
+    flex-shrink: 0;
+  }
+  .we-input {
+    width: 0;
+    flex: 1;
+    min-width: 0;
+    background: rgba(255,255,255,0.02);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 6px;
+    color: var(--text);
+    font-size: 0.9rem;
+    padding: 6px 4px;
+    text-align: center;
+  }
+  .we-input::placeholder {
+    color: var(--muted);
+    opacity: 0.6;
+  }
+  .we-x {
+    color: var(--muted);
+    font-size: 0.8rem;
+    flex-shrink: 0;
+  }
+  .set-check {
+    flex-shrink: 0;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    border: 2px solid var(--border);
+    background: transparent;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--highlight);
+    font-size: 0.8rem;
+    line-height: 1;
+  }
+  .set-check.checked {
+    background: linear-gradient(180deg, var(--highlight), var(--accent));
+    border-color: transparent;
+    color: #10131A;
+  }
+  .we-set-remove {
+    flex-shrink: 0;
+    width: 22px;
+    height: 22px;
+    border: none;
+    background: none;
+    color: var(--muted);
+    font-size: 1rem;
+    cursor: pointer;
+    line-height: 1;
+  }
+  .we-set-remove-spacer {
+    display: inline-block;
+    width: 22px;
+    flex-shrink: 0;
+  }
+  .we-add-set {
+    margin-top: 10px;
+    background: none;
+    border: 1px dashed rgba(255,255,255,0.08);
+    color: var(--muted);
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-size: 0.76rem;
+    cursor: pointer;
+    width: 100%;
+  }
+  .add-exercise-btn {
+    width: 100%;
+    background: transparent;
+    border: 1px solid rgba(59,130,246,0.2);
+    color: var(--accent);
+    padding: 10px;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    margin-bottom: 10px;
+  }
+  .finish-workout-btn {
+    width: 100%;
+    background: linear-gradient(90deg, var(--highlight), var(--accent));
+    border: none;
+    color: #10131A;
+    padding: 12px;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .exercise-picker-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(10,11,13,0.75);
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    z-index: 10;
+  }
+  .exercise-picker-box {
+    background: var(--surface);
+    border-radius: 12px 12px 0 0;
+    width: 100%;
+    max-width: 640px;
+    max-height: 80vh;
+    display: flex;
+    flex-direction: column;
+    padding: 16px;
+  }
+  .picker-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+  .picker-title {
+    font-weight: 600;
+    font-size: 1rem;
+  }
+  .picker-close {
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-size: 1.4rem;
+    cursor: pointer;
+    line-height: 1;
+  }
+  .picker-search {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    padding: 10px;
+    font-size: 0.9rem;
+    margin-bottom: 10px;
+  }
+  .picker-list {
+    overflow-y: auto;
+    flex: 1;
+    margin-bottom: 10px;
+  }
+  .picker-category {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--muted);
+    margin: 12px 0 4px;
+  }
+  .picker-item {
+    display: block;
+    width: 100%;
+    text-align: left;
+    background: none;
+    border: none;
+    border-bottom: 1px solid rgba(255,255,255,0.03);
+    color: var(--text);
+    padding: 10px 4px;
+    font-size: 0.9rem;
+    cursor: pointer;
+  }
+  .picker-item:active {
+    background: rgba(255,255,255,0.03);
+  }
+  .picker-empty {
+    color: var(--muted);
+    font-size: 0.85rem;
+    text-align: center;
+    padding: 20px 0;
+  }
+  .picker-custom {
+    display: flex;
+    gap: 8px;
+    border-top: 1px solid var(--border);
+    padding-top: 10px;
+  }
+  .picker-custom-input {
+    flex: 1;
+    background: rgba(255,255,255,0.02);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    padding: 8px;
+    font-size: 0.85rem;
+  }
+  .picker-custom-add {
+    background: var(--accent);
+    border: none;
+    color: #10131A;
+    border-radius: 6px;
+    padding: 8px 14px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .history-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin-bottom: 10px;
+    overflow: hidden;
+  }
+  .history-card-header {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: none;
+    border: none;
+    color: var(--text);
+    padding: 14px 16px;
+    cursor: pointer;
+    text-align: left;
+  }
+  .history-date {
+    font-weight: 600;
+    font-size: 0.92rem;
+  }
+  .history-summary {
+    font-size: 0.76rem;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+  .history-chevron {
+    color: var(--muted);
+    font-size: 1.2rem;
+    transition: transform 0.15s ease;
+    flex-shrink: 0;
+  }
+  .history-detail {
+    padding: 0 16px 14px;
+    border-top: 1px solid var(--border);
+  }
+  .history-exercise-line {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    font-size: 0.82rem;
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.03);
+  }
+  .history-exercise-line:last-child {
+    border-bottom: none;
+  }
+  .history-ex-name {
+    font-weight: 600;
+  }
+  .history-ex-sets {
+    color: var(--muted);
+    text-align: right;
+  }
+  footer {
+    margin-top: 30px;
+    text-align: center;
+  }
+  .reset-btn {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 0.78rem;
+    cursor: pointer;
+  }
+  @keyframes firework {
+    0% { transform: translate(0, 0) scale(1); opacity: 1; }
+    100% { transform: translate(var(--tx), var(--ty)) scale(0); opacity: 0; }
+  }
+  .firework-particle {
+    position: fixed;
+    width: 8px;
+    height: 8px;
+    pointer-events: none;
+    border-radius: 50%;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Lift Tracker</h1>
+</header>
+
+<div class="view-toggle" id="viewToggle">
+  <button id="workoutViewBtn" class="active">Workout</button>
+  <button id="historyViewBtn">History</button>
+</div>
+
+<div id="workoutView">
+  <div id="workoutContent"><div class="loading">Loading…</div></div>
+</div>
+
+<div id="historyView" style="display:none;">
+  <div id="historyContent"></div>
+</div>
+
+<div class="exercise-picker-overlay" id="pickerOverlay" style="display:none;">
+  <div class="exercise-picker-box">
+    <div class="picker-header">
+      <div class="picker-title">Add Exercise</div>
+      <button class="picker-close" id="pickerClose">&times;</button>
+    </div>
+    <input type="text" class="picker-search" id="pickerSearch" placeholder="Search exercises…">
+    <div class="picker-list" id="pickerList"></div>
+    <div class="picker-custom">
+      <input type="text" class="picker-custom-input" id="pickerCustomName" placeholder="Custom exercise name">
+      <button class="picker-custom-add" id="pickerCustomAdd">Add</button>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <button class="reset-btn" id="signOutBtn">Sign out</button>
+</footer>
+
+<script>
+function redirectToLogin() {
+  window.location.href = '/login.html';
+}
+
+window.storage = {
+  async get(key) {
+    const res = await fetch('/api/storage/' + encodeURIComponent(key));
+    if (res.status === 401) return redirectToLogin();
+    if (res.status === 404) throw new Error('not found');
+    if (!res.ok) throw new Error('server error ' + res.status);
+    return res.json();
+  },
+  async set(key, value) {
+    const res = await fetch('/api/storage/' + encodeURIComponent(key), {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ value })
+    });
+    if (res.status === 401) return redirectToLogin();
+    if (!res.ok) return null;
+    return res.json();
+  },
+  async remove(key) {
+    const res = await fetch('/api/storage/' + encodeURIComponent(key), { method: 'DELETE' });
+    if (res.status === 401) return redirectToLogin();
+    if (!res.ok) return null;
+    return res.json();
+  },
+  async list(prefix) {
+    const params = new URLSearchParams({ prefix: prefix || '' });
+    const res = await fetch('/api/storage?' + params.toString());
+    if (res.status === 401) return redirectToLogin();
+    if (!res.ok) return null;
+    return res.json();
+  }
+};
+
+const LIBRARY = [
+  { id: 'bench_press', name: 'Bench Press', category: 'Chest' },
+  { id: 'incline_bench_press', name: 'Incline Bench Press', category: 'Chest' },
+  { id: 'dumbbell_bench_press', name: 'Dumbbell Bench Press', category: 'Chest' },
+  { id: 'push_up', name: 'Push-Up', category: 'Chest' },
+  { id: 'chest_fly', name: 'Chest Fly', category: 'Chest' },
+  { id: 'dips', name: 'Dips', category: 'Chest' },
+
+  { id: 'deadlift', name: 'Deadlift', category: 'Back' },
+  { id: 'pull_up', name: 'Pull-Up', category: 'Back' },
+  { id: 'lat_pulldown', name: 'Lat Pulldown', category: 'Back' },
+  { id: 'barbell_row', name: 'Barbell Row', category: 'Back' },
+  { id: 'seated_cable_row', name: 'Seated Cable Row', category: 'Back' },
+  { id: 'face_pull', name: 'Face Pull', category: 'Back' },
+
+  { id: 'squat', name: 'Squat', category: 'Legs' },
+  { id: 'front_squat', name: 'Front Squat', category: 'Legs' },
+  { id: 'leg_press', name: 'Leg Press', category: 'Legs' },
+  { id: 'romanian_deadlift', name: 'Romanian Deadlift', category: 'Legs' },
+  { id: 'lunges', name: 'Lunges', category: 'Legs' },
+  { id: 'leg_curl', name: 'Leg Curl', category: 'Legs' },
+  { id: 'leg_extension', name: 'Leg Extension', category: 'Legs' },
+  { id: 'calf_raise', name: 'Calf Raise', category: 'Legs' },
+
+  { id: 'overhead_press', name: 'Overhead Press', category: 'Shoulders' },
+  { id: 'dumbbell_shoulder_press', name: 'Dumbbell Shoulder Press', category: 'Shoulders' },
+  { id: 'lateral_raise', name: 'Lateral Raise', category: 'Shoulders' },
+  { id: 'front_raise', name: 'Front Raise', category: 'Shoulders' },
+  { id: 'rear_delt_fly', name: 'Rear Delt Fly', category: 'Shoulders' },
+  { id: 'shrugs', name: 'Shrugs', category: 'Shoulders' },
+
+  { id: 'barbell_curl', name: 'Barbell Curl', category: 'Arms' },
+  { id: 'dumbbell_curl', name: 'Dumbbell Curl', category: 'Arms' },
+  { id: 'hammer_curl', name: 'Hammer Curl', category: 'Arms' },
+  { id: 'tricep_pushdown', name: 'Tricep Pushdown', category: 'Arms' },
+  { id: 'skull_crusher', name: 'Skull Crusher', category: 'Arms' },
+  { id: 'close_grip_bench_press', name: 'Close-Grip Bench Press', category: 'Arms' },
+
+  { id: 'plank', name: 'Plank', category: 'Core' },
+  { id: 'hanging_leg_raise', name: 'Hanging Leg Raise', category: 'Core' },
+  { id: 'cable_crunch', name: 'Cable Crunch', category: 'Core' },
+  { id: 'russian_twist', name: 'Russian Twist', category: 'Core' },
+  { id: 'ab_wheel_rollout', name: 'Ab Wheel Rollout', category: 'Core' },
+];
+
+let me = null, meName = null;
+let customExercises = [];
+let activeWorkout = null;
+let currentView = 'workout';
+let historyWorkouts = null;
+let pickerSearch = '';
+
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str == null ? '' : String(str);
+  return div.innerHTML;
+}
+
+function allExercises() {
+  return LIBRARY.concat(customExercises);
+}
+
+function findExercise(id) {
+  return allExercises().find((e) => e.id === id);
+}
+
+function formatTime(iso) {
+  return new Date(iso).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+}
+
+function formatDateTime(iso) {
+  return new Date(iso).toLocaleString(undefined, {
+    weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit'
+  });
+}
+
+function triggerFireworks(element) {
+  const rect = element.getBoundingClientRect();
+  const centerX = rect.left + rect.width / 2;
+  const centerY = rect.top + rect.height / 2;
+
+  const particleCount = 20;
+  const colors = ['var(--accent)', 'var(--highlight)', 'var(--danger)'];
+
+  for (let i = 0; i < particleCount; i++) {
+    const particle = document.createElement('div');
+    particle.className = 'firework-particle';
+
+    const angle = (i / particleCount) * Math.PI * 2;
+    const velocity = 100 + Math.random() * 150;
+    const tx = Math.cos(angle) * velocity;
+    const ty = Math.sin(angle) * velocity;
+
+    particle.style.left = centerX + 'px';
+    particle.style.top = centerY + 'px';
+    particle.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+    particle.style.setProperty('--tx', tx + 'px');
+    particle.style.setProperty('--ty', ty + 'px');
+    particle.style.animation = 'firework 0.8s ease-out forwards';
+
+    document.body.appendChild(particle);
+    setTimeout(() => particle.remove(), 800);
+  }
+}
+
+async function loadCustomExercises() {
+  try {
+    const r = await window.storage.get('custom_exercises');
+    customExercises = (r && r.value) ? JSON.parse(r.value) : [];
+  } catch (e) {
+    customExercises = [];
+  }
+}
+
+async function saveCustomExercises() {
+  await window.storage.set('custom_exercises', JSON.stringify(customExercises));
+}
+
+async function loadActiveWorkout() {
+  try {
+    const r = await window.storage.get('active_workout');
+    activeWorkout = (r && r.value) ? JSON.parse(r.value) : null;
+  } catch (e) {
+    activeWorkout = null;
+  }
+}
+
+function saveActiveWorkout() {
+  if (!activeWorkout) return;
+  return window.storage.set('active_workout', JSON.stringify(activeWorkout));
+}
+
+function startWorkout() {
+  activeWorkout = { id: String(Date.now()), startedAt: new Date().toISOString(), exercises: [] };
+  saveActiveWorkout();
+  renderWorkout();
+}
+
+function discardWorkout() {
+  if (!confirm('Discard this workout? This cannot be undone.')) return;
+  activeWorkout = null;
+  window.storage.remove('active_workout');
+  renderWorkout();
+}
+
+async function finishWorkout() {
+  if (!activeWorkout) return;
+  if (activeWorkout.exercises.length === 0) {
+    activeWorkout = null;
+    await window.storage.remove('active_workout');
+    renderWorkout();
+    return;
+  }
+  activeWorkout.endedAt = new Date().toISOString();
+  await window.storage.set('workout_' + activeWorkout.id, JSON.stringify(activeWorkout));
+  await window.storage.remove('active_workout');
+  activeWorkout = null;
+  historyWorkouts = null;
+  renderWorkout();
+}
+
+function addExerciseToWorkout(exerciseId) {
+  if (!activeWorkout) return;
+  activeWorkout.exercises.push({ exerciseId, sets: [{ weight: null, reps: null, done: false }] });
+  saveActiveWorkout();
+  closePicker();
+  renderWorkout();
+}
+
+function removeExerciseFromWorkout(exIdx) {
+  activeWorkout.exercises.splice(exIdx, 1);
+  saveActiveWorkout();
+  renderWorkout();
+}
+
+function addSet(exIdx) {
+  const sets = activeWorkout.exercises[exIdx].sets;
+  const last = sets[sets.length - 1];
+  sets.push({ weight: last ? last.weight : null, reps: last ? last.reps : null, done: false });
+  saveActiveWorkout();
+  renderWorkout();
+}
+
+function removeSet(exIdx, setIdx) {
+  const sets = activeWorkout.exercises[exIdx].sets;
+  if (sets.length <= 1) return;
+  sets.splice(setIdx, 1);
+  saveActiveWorkout();
+  renderWorkout();
+}
+
+// Deliberately does not re-render: this fires on every field's blur, and
+// rebuilding the whole exercise list here would destroy sibling inputs the
+// user is mid-interaction with (their pending edit is only committed to the
+// DOM on their own blur, so an earlier field's re-render can otherwise wipe
+// out a value the user already typed into a field they haven't left yet).
+function updateSetField(exIdx, setIdx, field, rawValue) {
+  const num = rawValue === '' ? null : Math.max(0, parseFloat(rawValue));
+  activeWorkout.exercises[exIdx].sets[setIdx][field] = Number.isFinite(num) ? num : null;
+  saveActiveWorkout();
+}
+
+// Same reasoning as updateSetField: update this one button directly instead
+// of a full re-render, so it can't clobber an in-progress edit elsewhere.
+function toggleSetDone(exIdx, setIdx) {
+  const set = activeWorkout.exercises[exIdx].sets[setIdx];
+  set.done = !set.done;
+  saveActiveWorkout();
+  const btn = document.querySelector(`[data-set-check-ex="${exIdx}"][data-set-check-set="${setIdx}"]`);
+  if (btn) {
+    btn.classList.toggle('checked', set.done);
+    btn.innerHTML = set.done ? '&#10003;' : '';
+    if (set.done) triggerFireworks(btn);
+  }
+}
+
+function renderWorkout() {
+  const content = document.getElementById('workoutContent');
+
+  if (!activeWorkout) {
+    content.innerHTML = `
+      <div class="start-workout-wrap">
+        <button class="start-workout-btn" id="startWorkoutBtn">+ Start Workout</button>
+      </div>`;
+    document.getElementById('startWorkoutBtn').addEventListener('click', startWorkout);
+    return;
+  }
+
+  const totalSets = activeWorkout.exercises.reduce((a, ex) => a + ex.sets.length, 0);
+
+  const exCards = activeWorkout.exercises.map((ex, exIdx) => {
+    const def = findExercise(ex.exerciseId);
+    const name = def ? def.name : 'Unknown exercise';
+    const setRows = ex.sets.map((s, setIdx) => `
+      <div class="we-set-row">
+        <div class="we-set-label">Set ${setIdx + 1}</div>
+        <input type="number" inputmode="decimal" class="we-input we-weight" data-field="weight" data-ex="${exIdx}" data-set="${setIdx}" value="${s.weight ?? ''}" placeholder="lb">
+        <span class="we-x">&times;</span>
+        <input type="number" inputmode="numeric" class="we-input we-reps" data-field="reps" data-ex="${exIdx}" data-set="${setIdx}" value="${s.reps ?? ''}" placeholder="reps">
+        <button class="set-check${s.done ? ' checked' : ''}" data-set-check-ex="${exIdx}" data-set-check-set="${setIdx}">${s.done ? '&#10003;' : ''}</button>
+        ${ex.sets.length > 1 ? `<button class="we-set-remove" data-remove-set-ex="${exIdx}" data-remove-set-set="${setIdx}">&times;</button>` : '<span class="we-set-remove-spacer"></span>'}
+      </div>`).join('');
+
+    return `
+      <div class="workout-exercise">
+        <div class="we-top">
+          <div class="we-name">${escapeHtml(name)}</div>
+          <button class="we-remove" data-remove-ex="${exIdx}">Remove</button>
+        </div>
+        <div class="we-sets">${setRows}</div>
+        <button class="we-add-set" data-add-set="${exIdx}">+ Add set</button>
+      </div>`;
+  }).join('');
+
+  content.innerHTML = `
+    <div class="workout-meta">
+      <div class="workout-started">Started ${formatTime(activeWorkout.startedAt)}</div>
+      <button class="discard-btn" id="discardWorkoutBtn">Discard</button>
+    </div>
+    <div class="workout-stats">${activeWorkout.exercises.length} exercise${activeWorkout.exercises.length === 1 ? '' : 's'} &middot; ${totalSets} set${totalSets === 1 ? '' : 's'}</div>
+    <div class="workout-exercise-list">${exCards || '<div class="workout-empty">No exercises yet — add one below.</div>'}</div>
+    <button class="add-exercise-btn" id="addExerciseBtn">+ Add exercise</button>
+    <button class="finish-workout-btn" id="finishWorkoutBtn">Finish Workout</button>
+  `;
+
+  document.getElementById('discardWorkoutBtn').addEventListener('click', discardWorkout);
+  document.getElementById('addExerciseBtn').addEventListener('click', openPicker);
+  document.getElementById('finishWorkoutBtn').addEventListener('click', (e) => {
+    triggerFireworks(e.currentTarget);
+    finishWorkout();
+  });
+  content.querySelectorAll('[data-add-set]').forEach((btn) => {
+    btn.addEventListener('click', () => addSet(parseInt(btn.dataset.addSet)));
+  });
+  content.querySelectorAll('[data-remove-ex]').forEach((btn) => {
+    btn.addEventListener('click', () => removeExerciseFromWorkout(parseInt(btn.dataset.removeEx)));
+  });
+  content.querySelectorAll('[data-remove-set-ex]').forEach((btn) => {
+    btn.addEventListener('click', () => removeSet(parseInt(btn.dataset.removeSetEx), parseInt(btn.dataset.removeSetSet)));
+  });
+  content.querySelectorAll('[data-set-check-ex]').forEach((btn) => {
+    btn.addEventListener('click', () => toggleSetDone(parseInt(btn.dataset.setCheckEx), parseInt(btn.dataset.setCheckSet)));
+  });
+  content.querySelectorAll('.we-input').forEach((input) => {
+    input.addEventListener('change', () => {
+      updateSetField(parseInt(input.dataset.ex), parseInt(input.dataset.set), input.dataset.field, input.value);
+    });
+  });
+}
+
+function openPicker() {
+  pickerSearch = '';
+  document.getElementById('pickerSearch').value = '';
+  document.getElementById('pickerCustomName').value = '';
+  document.getElementById('pickerOverlay').style.display = 'flex';
+  renderPickerList();
+  document.getElementById('pickerSearch').focus();
+}
+
+function closePicker() {
+  document.getElementById('pickerOverlay').style.display = 'none';
+}
+
+function renderPickerList() {
+  const listEl = document.getElementById('pickerList');
+  const q = pickerSearch.trim().toLowerCase();
+  const matches = allExercises().filter((ex) => ex.name.toLowerCase().includes(q));
+  const byCategory = {};
+  matches.forEach((ex) => {
+    (byCategory[ex.category] = byCategory[ex.category] || []).push(ex);
+  });
+  const categories = Object.keys(byCategory).sort((a, b) => {
+    if (a === 'Custom') return 1;
+    if (b === 'Custom') return -1;
+    return a.localeCompare(b);
+  });
+
+  listEl.innerHTML = categories.map((cat) => `
+    <div class="picker-category">${escapeHtml(cat)}</div>
+    ${byCategory[cat].map((ex) => `<button class="picker-item" data-pick="${ex.id}">${escapeHtml(ex.name)}</button>`).join('')}
+  `).join('') || '<div class="picker-empty">No matches.</div>';
+
+  listEl.querySelectorAll('[data-pick]').forEach((btn) => {
+    btn.addEventListener('click', () => addExerciseToWorkout(btn.dataset.pick));
+  });
+}
+
+async function addCustomExercise() {
+  const nameInput = document.getElementById('pickerCustomName');
+  const name = nameInput.value.trim();
+  if (!name) return;
+  const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+  const id = 'custom_' + slug + '_' + Date.now().toString(36);
+  customExercises.push({ id, name, category: 'Custom' });
+  await saveCustomExercises();
+  nameInput.value = '';
+  renderPickerList();
+}
+
+function computeVolume(workout) {
+  let total = 0;
+  workout.exercises.forEach((ex) => {
+    ex.sets.forEach((s) => { total += (s.weight || 0) * (s.reps || 0); });
+  });
+  return total;
+}
+
+async function loadHistory() {
+  const listRes = await window.storage.list('workout_');
+  const keys = (listRes && listRes.keys) || [];
+  const workouts = [];
+  for (const key of keys) {
+    try {
+      const r = await window.storage.get(key);
+      if (r && r.value) workouts.push(JSON.parse(r.value));
+    } catch (e) {
+      // skip unreadable entry
+    }
+  }
+  workouts.sort((a, b) => new Date(b.startedAt) - new Date(a.startedAt));
+  historyWorkouts = workouts;
+}
+
+async function renderHistory() {
+  const content = document.getElementById('historyContent');
+  if (historyWorkouts === null) {
+    content.innerHTML = '<div class="loading">Loading…</div>';
+    await loadHistory();
+  }
+  if (historyWorkouts.length === 0) {
+    content.innerHTML = '<div class="loading">No workouts logged yet.</div>';
+    return;
+  }
+
+  content.innerHTML = historyWorkouts.map((w, i) => {
+    const setCount = w.exercises.reduce((a, ex) => a + ex.sets.length, 0);
+    const volume = computeVolume(w);
+    const exerciseLines = w.exercises.map((ex) => {
+      const def = findExercise(ex.exerciseId);
+      const name = def ? def.name : 'Unknown exercise';
+      const setsStr = ex.sets.map((s) => `${s.weight ?? 0}&times;${s.reps ?? 0}`).join(', ');
+      return `<div class="history-exercise-line"><span class="history-ex-name">${escapeHtml(name)}</span><span class="history-ex-sets">${setsStr}</span></div>`;
+    }).join('');
+    return `
+      <div class="history-card">
+        <button class="history-card-header" data-toggle-history="${i}">
+          <div>
+            <div class="history-date">${formatDateTime(w.startedAt)}</div>
+            <div class="history-summary">${w.exercises.length} exercise${w.exercises.length === 1 ? '' : 's'} &middot; ${setCount} set${setCount === 1 ? '' : 's'} &middot; ${volume.toLocaleString()} lb volume</div>
+          </div>
+          <div class="history-chevron">&#8250;</div>
+        </button>
+        <div class="history-detail" id="historyDetail${i}" style="display:none;">${exerciseLines}</div>
+      </div>`;
+  }).join('');
+
+  content.querySelectorAll('[data-toggle-history]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const idx = btn.dataset.toggleHistory;
+      const detail = document.getElementById('historyDetail' + idx);
+      const open = detail.style.display !== 'none';
+      detail.style.display = open ? 'none' : 'block';
+      btn.querySelector('.history-chevron').style.transform = open ? '' : 'rotate(90deg)';
+    });
+  });
+}
+
+function showView(view) {
+  currentView = view;
+  document.getElementById('workoutViewBtn').classList.toggle('active', view === 'workout');
+  document.getElementById('historyViewBtn').classList.toggle('active', view === 'history');
+  document.getElementById('workoutView').style.display = view === 'workout' ? 'block' : 'none';
+  document.getElementById('historyView').style.display = view === 'history' ? 'block' : 'none';
+  if (view === 'history') renderHistory();
+}
+
+document.getElementById('workoutViewBtn').addEventListener('click', () => showView('workout'));
+document.getElementById('historyViewBtn').addEventListener('click', () => showView('history'));
+document.getElementById('pickerClose').addEventListener('click', closePicker);
+document.getElementById('pickerSearch').addEventListener('input', (e) => {
+  pickerSearch = e.target.value;
+  renderPickerList();
+});
+document.getElementById('pickerCustomAdd').addEventListener('click', addCustomExercise);
+document.getElementById('signOutBtn').addEventListener('click', async () => {
+  try { await fetch('/api/auth/logout', { method: 'POST' }); } catch (e) { /* ignore, still redirect */ }
+  redirectToLogin();
+});
+
+(async function init() {
+  try {
+    const meRes = await fetch('/api/auth/me');
+    if (meRes.status === 401) return redirectToLogin();
+    const meData = await meRes.json();
+    me = meData.email;
+    meName = meData.name;
+  } catch (e) {
+    document.getElementById('workoutContent').innerHTML =
+      '<div class="loading">Could not load account info: ' + (e && e.message ? e.message : e) + '</div>';
+    return;
+  }
+  await loadCustomExercises();
+  await loadActiveWorkout();
+  renderWorkout();
+})();
+</script>
+
+</body>
+</html>

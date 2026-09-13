@@ -1,0 +1,14 @@
+{
+  "name": "lift-tracker",
+  "version": "1.0.0",
+  "description": "Self-hosted weightlifting workout tracker with local file persistence",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "cookie-session": "^2.1.1",
+    "express": "^4.19.2",
+    "google-auth-library": "^11.0.2"
+  }
+}

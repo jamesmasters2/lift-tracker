@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sign In — Lift Tracker</title>
+<style>
+  :root {
+    --bg: #15171A;
+    --surface: #1D2024;
+    --accent: #3B82F6;
+    --muted: #9198A5;
+    --highlight: #22C55E;
+    --danger: #EF4444;
+    --text: #E7E9EC;
+    --border: #2A2D33;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background: linear-gradient(180deg, #0E0F11 0%, var(--bg) 100%);
+    color: var(--text);
+    font-family: -apple-system, sans-serif;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    -webkit-font-smoothing: antialiased;
+  }
+  .box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 28px 24px;
+    max-width: 340px;
+    width: 100%;
+    text-align: center;
+    box-shadow: 0 6px 14px rgba(10,11,13,0.45);
+  }
+  h1 {
+    font-family: -apple-system, 'Segoe UI', sans-serif;
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--accent);
+    margin: 0 0 6px;
+  }
+  p {
+    font-size: 0.82rem;
+    color: var(--muted);
+    line-height: 1.4;
+    margin: 0 0 20px;
+  }
+  #gsiButton {
+    display: flex;
+    justify-content: center;
+    min-height: 40px;
+  }
+  #error {
+    margin-top: 14px;
+    font-size: 0.78rem;
+    color: var(--danger);
+    min-height: 16px;
+  }
+</style>
+</head>
+<body>
+
+<div class="box">
+  <h1>Lift Tracker</h1>
+  <p>Sign in with an authorized Google account to log your workouts.</p>
+  <div id="gsiButton"></div>
+  <div id="error"></div>
+</div>
+
+<script src="https://accounts.google.com/gsi/client" async onload="init()"></script>
+<script>
+async function handleCredentialResponse(response) {
+  const errorEl = document.getElementById('error');
+  errorEl.textContent = '';
+  try {
+    const res = await fetch('/api/auth/google', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ credential: response.credential })
+    });
+    if (res.ok) {
+      window.location.href = '/';
+    } else if (res.status === 403) {
+      errorEl.textContent = 'This Google account is not authorized for this app.';
+    } else {
+      errorEl.textContent = 'Sign-in failed. Please try again.';
+    }
+  } catch (e) {
+    errorEl.textContent = 'Sign-in failed: ' + (e && e.message ? e.message : e);
+  }
+}
+
+async function init() {
+  try {
+    const res = await fetch('/api/auth/config');
+    const { clientId } = await res.json();
+    google.accounts.id.initialize({
+      client_id: clientId,
+      callback: handleCredentialResponse
+    });
+    google.accounts.id.renderButton(document.getElementById('gsiButton'), {
+      theme: 'filled_black',
+      size: 'large',
+      shape: 'pill'
+    });
+  } catch (e) {
+    document.getElementById('error').textContent = 'Could not load sign-in. Please refresh.';
+  }
+}
+
+</script>
+
+</body>
+</html>
